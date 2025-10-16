@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Random Quote</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --button-bg: #1f2937;
+      --button-text: #e5e7eb;
+      --button-hover: #374151;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: radial-gradient(1200px 800px at 10% 10%, #0b1225, var(--bg));
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    .wrap {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+    }
+    .card {
+      width: 100%;
+      max-width: 680px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(6px);
+    }
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+    #quote {
+      font-size: 1.6rem;
+      line-height: 1.5;
+      margin: 0.5rem 0 1.25rem 0;
+      color: var(--text);
+      transition: opacity 180ms ease;
+      min-height: 3.5em;
+    }
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .left {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex: 1;
+      min-width: 200px;
+    }
+    .badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--accent);
+      background: linear-gradient(180deg, rgba(56,189,248,0.12), rgba(56,189,248,0.06));
+    }
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: var(--button-bg);
+      color: var(--button-text);
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 160ms ease, transform 60ms ease;
+    }
+    button:hover { background: var(--button-hover); }
+    button:active { transform: translateY(1px); }
+    .hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    footer {
+      text-align: center;
+      margin-top: 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .sr-only {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0);
+      white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <main class="card" role="main" aria-labelledby="app-title">
+      <h1 id="app-title">Random Quote</h1>
+
+      <p id="quote" aria-live="polite">Loading quote…</p>
+
+      <div class="row">
+        <div class="left">
+          <span class="badge">quotes.json</span>
+          <span class="hint">Fetching a random quote from local data</span>
+        </div>
+        <div class="right">
+          <button id="new-quote" type="button" aria-label="Get a new random quote">New Quote</button>
+        </div>
+      </div>
+
+      <footer>
+        <span>Tip: Serve this folder via a local web server for fetch() to work.</span>
+      </footer>
+    </main>
+  </div>
+
+  <noscript>
+    <p class="sr-only">This app requires JavaScript to load a quote.</p>
+  </noscript>
+
+  <script>
+    (function () {
+      const quoteEl = document.getElementById('quote');
+      const btn = document.getElementById('new-quote');
+
+      let quotes = [];
+      let lastIndex = -1;
+
+      function pickRandomIndex(max) {
+        if (max <= 1) return 0;
+        let idx;
+        do { idx = Math.floor(Math.random() * max); } while (idx === lastIndex);
+        lastIndex = idx;
+        return idx;
+      }
+
+      function showRandomQuote() {
+        if (!Array.isArray(quotes) || quotes.length === 0) {
+          quoteEl.textContent = 'No quotes available.';
+          return;
+        }
+        const idx = pickRandomIndex(quotes.length);
+        const q = quotes[idx];
+        quoteEl.style.opacity = '0';
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            quoteEl.textContent = String(q);
+            quoteEl.style.opacity = '1';
+          }, 120);
+        });
+      }
+
+      async function loadQuotes() {
+        try {
+          const res = await fetch('quotes.json', { cache: 'no-store' });
+          if (!res.ok) throw new Error('Failed to fetch quotes.json: ' + res.status);
+          const data = await res.json();
+          if (!Array.isArray(data)) throw new Error('quotes.json must be an array of strings');
+          quotes = data.filter(q => typeof q === 'string' && q.trim().length > 0);
+          if (quotes.length === 0) throw new Error('No valid quotes found');
+          showRandomQuote();
+        } catch (err) {
+          console.error(err);
+          // Fallback to a minimal built-in list to ensure a quote is shown
+          quotes = [
+            'Keep going. Everything you need will come to you at the perfect time.',
+            'Simplicity is the soul of efficiency.',
+            'Make it work, make it right, make it fast.'
+          ];
+          showRandomQuote();
+          const hint = document.querySelector('.hint');
+          if (hint) hint.textContent = 'Using fallback quotes (failed to load quotes.json).';
+        }
+      }
+
+      btn.addEventListener('click', () => {
+        // Use already-loaded quotes for instant experience
+        showRandomQuote();
+      });
+
+      document.addEventListener('DOMContentLoaded', loadQuotes);
+      // If DOMContentLoaded already fired
+      if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        loadQuotes();
+      }
+    })();
+  </script>
+</body>
+</html>
